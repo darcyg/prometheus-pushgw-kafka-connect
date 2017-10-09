@@ -36,6 +36,7 @@ const config = {
         options: {
             host: "localhost",
             port: 9091,
+            job: "pushgateway",
             logging: () => {}
         },
     },
