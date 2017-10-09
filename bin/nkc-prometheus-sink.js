@@ -13,6 +13,8 @@ program
   .option("-g, --group [string]", "Kafka ConsumerGroup Id")
   .option("-t, --topic [string]", "Kafka Topic to read from")
   .option("-h, --pg_host [string]", "Pushgateway Host")
+  .option("-p, --pg_port [number]", "Pushgateway Port")
+  .option("-j, --job [string]", "Pushgateway Job")
   .parse(process.argv);
 
 const config = loadConfig(program.config);
@@ -33,29 +35,15 @@ if (program.pg_host) {
   config.connector.options.host = program.pg_host;
 }
 
-const etl = (message, callback) => {
-
-  if (message.type === "publish") {
-    const record = {
-      metric: message.foo,
-      value: 89.12,
-      label: message.type
-    }
-
-    return callback(null, record);
-  }
-
-  if (message.type === "unpublish") {
-    return callback(null, null);
-  }
-
-  callback(new Error("unknown message.type"));
-
+if (program.pg_port) {
+  config.connector.options.port = program.pg_port;
 }
 
-const converter = ConverterFactory.createSinkSchemaConverter(null,etl);
+if (program.job) {
+  config.connector.options.job = program.job;
+}
 
-runSinkConnector(config, [converter], console.log.bind(console)).then(sink => {
+runSinkConnector(config, [], console.log.bind(console)).then(sink => {
 
     const exit = (isExit = false) => {
         sink.stop();
