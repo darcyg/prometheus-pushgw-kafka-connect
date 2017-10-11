@@ -1,5 +1,7 @@
+"use strict";
+
 const { runSinkConnector, ConverterFactory } = require("./../index.js");
-const config = require("./../config/default.js");
+const config = require("./config.js");
 
 console.log("******************");
 console.log("Produce to kafka topic just like in config, with the following schema:");

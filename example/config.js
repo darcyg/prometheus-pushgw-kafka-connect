@@ -34,6 +34,7 @@ const config = {
     produceCompressionType: 0,
     connector: {
         options: {
+            proto: "http",
             host: "localhost",
             port: 9091,
             job: "pushgateway_job",
