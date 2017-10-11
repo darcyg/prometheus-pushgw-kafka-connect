@@ -42,6 +42,7 @@ describe("Connector INT", function() {
 
     describe("Converter Factory", function() {
 
+        const random = (Math.random()*10).toFixed(3) * 1;
         let config = null;
         let error = null;
         let topic = "pc_test_topic_2";
@@ -99,7 +100,7 @@ describe("Connector INT", function() {
             return producer.connect().then(_ => {
                 return Promise.all([
                     producer.buffer(topic, "3", {"metric":"euler_metric","value":2.71828,"type":"gauge"}),
-                    producer.buffer(topic, "4", {"metric":"c_metric","value":2.99792,"type":"gauge"})
+                    producer.buffer(topic, "4", {"metric":"any_metric","value":random})
                 ]);
             });
         });
@@ -142,8 +143,8 @@ describe("Connector INT", function() {
                     const result = JSON.parse(body);
                     const metric_name = result.data.result[0].metric["__name__"];
                     const metric_value = result.data.result[0].value[1] * 1;
-                    assert(metric_name, "c_metric");
-                    assert(metric_value, 2.99792);
+                    assert(metric_name, "any_metric");
+                    assert(metric_value, random);
                     done();
                   }
                 });
