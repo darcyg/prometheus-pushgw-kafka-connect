@@ -7,8 +7,8 @@ const config = {
         //zkConStr: "localhost:2181/",
         kafkaHost: "localhost:9092",
         logger: null,
-        groupId: "kc-sequelize-group",
-        clientName: "kc-sequelize-client",
+        groupId: "kc-prometheus-group",
+        clientName: "kc-prometheus-client",
         workerPerPartition: 1,
         options: {
             sessionTimeout: 8000,

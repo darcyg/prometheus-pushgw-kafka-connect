@@ -20,9 +20,9 @@
         "kafka",
         "connect"
     ],
-    "author": "Chris Froehlingsdorf <chris@5cf.de>",
+    "author": "Rian Josua Masikome <rj@masiko.me>",
     "contributors": [
-      "Rian Josua Masikome <rj@masiko.me>"
+      "Chris Froehlingsdorf <chris@5cf.de>"
     ],
     "license": "MIT",
     "bugs": {
