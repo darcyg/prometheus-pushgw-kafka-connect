@@ -41,7 +41,7 @@ const config = {
         }
     },
 
-    topic: "sc_test_topic",
+    topic: "pc_test_topic",
     partitions: 1,
     maxTasks: 1,
     pollInterval: 2000,
@@ -52,14 +52,9 @@ const config = {
     connector: {
         options: {
             host: "localhost",
-            port: 5432,
-            dialect: "sqlite",
-            pool: {
-                max: 5,
-                min: 0,
-                idle: 10000
-            },
-            storage: path.join(__dirname, "test-db.sqlite")
+            port: 9091,
+            job: "pushgateway_job",
+            logging: () => {}
         },
         database: null,
         user: null,

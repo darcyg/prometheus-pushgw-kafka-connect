@@ -1,29 +1,16 @@
 "use strict";
 
 const assert = require("assert");
-const Sequelize = require("sequelize");
 const { SourceRecord } = require("kafka-connect");
 const uuid = require("uuid");
 const { NProducer } = require("sinek");
 
 const { runSourceConnector, runSinkConnector, ConverterFactory } = require("./../../index.js");
 const sinkProperties = require("./../sink-config.js");
-const sourceProperties = require("./../source-config.js");
 
 describe("Connector INT", function() {
 
     describe("Sink", function() {
-
-        before((done) => {
-            const { database, options, user, password, table } = sinkProperties.connector;
-            const sequelize = new Sequelize(database, user, password, options);
-            sequelize.query(`DROP TABLE IF EXISTS ${table}`)
-                .catch(error => console.log(error))
-                .then(() => {
-                    sequelize.close();
-                    done();
-                });
-        });
 
         let config = null;
         let error = null;
@@ -34,8 +21,6 @@ describe("Connector INT", function() {
             };
             return runSinkConnector(Object.assign({}, sinkProperties, { enableMetrics: true }), [], onError).then(_config => {
                 config = _config;
-                config.on("model-upsert", id => console.log("upsert: " + id));
-                config.on("model-delete", id => console.log("delete: " + id));
                 return true;
             });
         });
@@ -52,95 +37,54 @@ describe("Connector INT", function() {
             setTimeout(done, 1500);
         });
 
-        it("should be able to see table data", function() {
-            const { database, options, user, password, table } = sinkProperties.connector;
-            const sequelize = new Sequelize(database, user, password, options);
-            return sequelize.query(`SELECT * FROM ${table}`)
-                .then(([results]) => {
-                    console.log(results);
-                    assert.equal(results.length, 1);
-                    sequelize.close();
-                    return true;
-                });
-        });
     });
 
     describe("Converter Factory", function() {
 
         let config = null;
         let error = null;
-        let topic = "sc_test_topic_2";
+        let topic = "pc_test_topic_2";
         let converter = {};
         let producer = null;
 
         it("should be able to create custom converter", function(done) {
 
-            const tableSchema = {
-                "id": {
-                    "type": "integer",
-                    "allowNull": false,
-                    "primaryKey": true
-                },
-                "name": {
-                    "type": "varchar(255)",
-                    "allowNull": true,
-                    "primaryKey": false
-                }
-            };
+            const etl = (message, callback) => {
 
-            const etlFunc = (messageValue, callback) => {
-
-                //type is an example json format field
-                if (messageValue.type === "publish") {
-                    return callback(null, {
-                        id: messageValue.payload.id,
-                        name: messageValue.payload.name
-                    });
+                let record = {
+                    metric: message.metric,
+                    value: message.value,
+                    label: message.label,
+                    type: message.type,
+                    help: message.help
                 }
 
-                if (messageValue.type === "unpublish") {
-                    return callback(null, null); //null value will cause deletion
-                }
+                return callback(null, record);
 
-                console.log(messageValue);
-                throw new Error("unknown messageValue.type");
-            };
+            }
 
-            converter = ConverterFactory.createSinkSchemaConverter(tableSchema, etlFunc);
+            converter = ConverterFactory.createSinkSchemaConverter(null, etl);
+
+            const payload = {"metric":"pi_metric","value":3.14159,"type":"gauge","help":"it is pi","label":"constants"};
 
             const aFakeKafkaMessage = {
                 partition: 0,
                 topic: "bla",
-                value: {
-                    payload: {
-                        id: "123",
-                        name: "bla-blup"
-                    },
-                    type: "publish"
-                },
+                value: payload,
                 offset: 1,
                 key: Buffer.from("123", "utf8")
             };
 
             converter.toConnectData(Object.assign({}, aFakeKafkaMessage), (error, message) => {
-
                 assert.ifError(error);
-                assert.deepEqual(message.value.valueSchema, tableSchema);
-                assert.deepEqual(message.value.value, {
-                    id: "123",
-                    name: "bla-blup"
-                });
+                assert.deepEqual(message.value.value, payload);
                 assert.ok(message.key);
                 assert.ok(message.value.key);
 
                 converter.toConnectData(Object.assign({}, aFakeKafkaMessage), (error, message) => {
 
                     assert.ifError(error);
-                    assert.deepEqual(message.value.valueSchema, tableSchema);
-                    assert.deepEqual(message.value.value, {
-                        id: "123",
-                        name: "bla-blup"
-                    });
+                    assert.deepEqual(message.value.value, payload);
                     assert.ok(message.key);
                     assert.ok(message.value.key);
 
@@ -153,9 +97,8 @@ describe("Connector INT", function() {
             producer = new NProducer(sinkProperties.kafka, topic, 1);
             return producer.connect().then(_ => {
                 return Promise.all([
-                    producer.buffer(topic, "3", { payload: { id: 3, name: "test1" }, type: "publish" }),
-                    producer.buffer(topic, "4", { payload: { id: 4, name: "test2" }, type: "publish" }),
-                    producer.buffer(topic, "3", { payload: null, type: "unpublish" })
+                    producer.buffer(topic, "3", {"metric":"euler_metric","value":2.71828,"type":"gauge"}),
+                    producer.buffer(topic, "4", {"metric":"c_metric","value":2.99792,"type":"gauge"})
                 ]);
             });
         });
@@ -167,7 +110,7 @@ describe("Connector INT", function() {
             }, 1500);
         });
 
-        it("shoud be able to sink message through custom converter", function() {
+        it("should be able to sink message through custom converter", function() {
             const onError = _error => {
                 error = _error;
             };
@@ -192,56 +135,28 @@ describe("Connector INT", function() {
             setTimeout(done, 1500);
         });
 
-        it("should be able to see table data", function() {
-            const { database, options, user, password, table } = sinkProperties.connector;
-            const sequelize = new Sequelize(database, user, password, options);
-            return sequelize.query(`SELECT * FROM ${table}`)
-                .then(([results]) => {
-                    console.log(results);
-                    assert.equal(results.length, 2);
-                    assert.deepEqual(results, [{ id: 2, name: "bob" }, { id: 4, name: "test2" }]);
-                    sequelize.close();
-                    return true;
-                });
-        });
     });
 
     describe("Sink with erroneous message", function() {
 
-        before((done) => {
-            const { database, options, user, password, table } = sinkProperties.connector;
-            const sequelize = new Sequelize(database, user, password, options);
-            sequelize.query(`DROP TABLE IF EXISTS ${table}`)
-                .catch(error => console.log(error))
-                .then(() => {
-                    sequelize.close();
-                    done();
-                });
-        });
-
-        const brokenTopic = sourceProperties.topic + "_broken";
+        const brokenTopic = sinkProperties.topic + "_broken";
         let config = null;
         let error = null;
+        let errorArray = [];
 
         it("should be able to run sequelize source config", function() {
             const onError = _error => {
                 error = _error;
             };
 
-            sourceProperties.topic = brokenTopic;
+            sinkProperties.topic = brokenTopic;
 
-            return runSourceConnector(sourceProperties, [], onError).then(_config => {
+            return runSinkConnector(sinkProperties, [], onError).then(_config => {
                 config = _config;
                 return true;
             });
         });
 
-        it("should be able to await a few pollings", function(done) {
-            setTimeout(() => {
-                assert.ifError(error);
-                done();
-            }, 4500);
-        });
 
         it("should be able to close configuration", function(done) {
             config.stop();
@@ -251,14 +166,14 @@ describe("Connector INT", function() {
         it("should produce the erroneous message", function(done) {
 
             const partitions = 1;
-            const producer = new NProducer(sourceProperties.kafka, [brokenTopic]);
+            const producer = new NProducer(sinkProperties.kafka, [brokenTopic]);
             producer.on("error", error => {
                 console.error(error);
                 return done();
             });
 
             producer.connect()
-                .then(() => producer.send(brokenTopic, JSON.stringify({payload: "this is wrong"})))
+                .then(() => producer.send(brokenTopic, JSON.stringify({payload: "this is another wrong"})))
                 .then(() => done());
         });
 
