@@ -27,6 +27,7 @@ describe("Connector INT", function() {
         });
 
         it("should be able to await a few message puts", function(done) {
+            this.timeout(5000);
             setTimeout(() => {
                 assert.ifError(error);
                 done();
@@ -124,33 +125,31 @@ describe("Connector INT", function() {
             });
         });
 
-        it("should be able to await a few message puts", function(done) {
+        it("should be able to await scrape process", function(done) {
+            this.timeout(3000);
             setTimeout(() => {
                 assert.ifError(error);
                 done();
-            }, 4500);
+            }, 2500);
         });
 
         it("should be able to get the same value from prometheus", function(done) {
-            setTimeout(() => {
 
-                request({
-                  url: "http://localhost:9090/api/v1/query?query=c_metric",
-                  method: 'GET'
-                },
-                function (error, response, body) {
-                  if (body && JSON.parse(body).status ==="success") {
-                    const result = JSON.parse(body);
-                    const metric_name = result.data.result[0].metric["__name__"];
-                    const metric_value = result.data.result[0].value[1] * 1;
-                    assert(metric_name, "any_metric");
-                    assert(metric_value, random);
-                    done();
-                  }
-                });
-
-            }, 4000);
-
+            request({
+                url: "http://localhost:9090/api/v1/query?query=c_metric",
+                method: 'GET'
+            },
+            (error, response, body) => {
+               
+                assert.ok(body && JSON.parse(body).status ==="success");
+                const result = JSON.parse(body);
+                console.log(result.data); //TODO remove me
+                const metric_name = result.data.result[0].metric["__name__"];
+                const metric_value = result.data.result[0].value[1] * 1;
+                assert(metric_name, "any_metric");
+                assert(metric_value, random);
+                done();
+            });
         });
 
         it("should be able to close configuration", function(done) {
@@ -158,7 +157,6 @@ describe("Connector INT", function() {
             producer.close();
             setTimeout(done, 1500);
         });
-
     });
 
     describe("Sink with erroneous message", function() {
@@ -210,15 +208,6 @@ describe("Connector INT", function() {
             sinkProperties.maxRetries = 2;
             sinkProperties.awaitRetry = 100;
             sinkProperties.haltOnError = true;
-            sinkProperties.kafka.logger = {
-                debug: function(message) {console.log(message)},
-                info: function(message) {console.log(message)},
-                warn: function(message) {console.warn(message)},
-                error: function(message) {
-                    errorMessages.push(message);
-                    console.error(message);
-                }
-            }
 
             return runSinkConnector(sinkProperties, [], onError).then(_config => {
                 config = _config;
@@ -227,6 +216,7 @@ describe("Connector INT", function() {
         });
 
         it("should put valid messages and fail on erroneous message", function(done) {
+            this.timeout(8500);
             setTimeout(() => {
                 assert.equal(error, "Error: halting because of retry error.");
                 done();

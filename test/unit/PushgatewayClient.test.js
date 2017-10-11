@@ -1,17 +1,12 @@
 "use strict";
 
 const assert = require("assert");
-const { SourceRecord } = require("kafka-connect");
-const uuid = require("uuid");
-const { NProducer } = require("sinek");
 
-const { runSourceConnector, runSinkConnector, ConverterFactory } = require("./../../index.js");
-const sinkProperties = require("./../sink-config.js");
-const PrometheusSinkTask = require("./../../lib/sink/PrometheusSinkTask");
+const PushgatewayClient = require("./../../lib/prometheus/PushgatewayClient.js");
 
-describe("Connector Unit", function() {
+describe("PushgatewayClient Unit", function() {
 
-    const task = new PrometheusSinkTask();
+    const pgclient = new PushgatewayClient({});
 
     describe("Correct value", function() {
 
@@ -19,7 +14,7 @@ describe("Connector Unit", function() {
           const expected = "pi 3.14159\n";
           let record;
           assert.doesNotThrow(() => {
-             record = task._stringify({metric: "pi", value: 3.14159});
+             record = pgclient._stringify({metric: "pi", value: 3.14159});
              assert.deepEqual(record, expected);
              done();
            });
@@ -29,7 +24,7 @@ describe("Connector Unit", function() {
           const expected = "# TYPE pi gauge\n# HELP pi Math constant.\npi{label=\"math\"} 3.14159\n";
           let record;
           assert.doesNotThrow(() => {
-             record = task._stringify({
+             record = pgclient._stringify({
                metric: "pi",
                value: 3.14159,
                label: "math",
@@ -45,7 +40,7 @@ describe("Connector Unit", function() {
           const expected = "pi 3.14159\n";
           let record;
           assert.doesNotThrow(() => {
-             record = task._stringify({metric: "pi", value: 3.14159, type: "any"});
+             record = pgclient._stringify({metric: "pi", value: 3.14159, type: "any"});
              assert.deepEqual(record, expected);
              done();
            });
@@ -56,32 +51,32 @@ describe("Connector Unit", function() {
     describe("Errornous value", function() {
 
         it("should fail when there's no metric or value", function(done) {
-          assert.throws(() => { task._stringify({"wrong": "payload"}) });
+          assert.throws(() => { pgclient._stringify({"wrong": "payload"}) });
           done();
         });
 
         it("should fail on non string metric", function(done) {
-          assert.throws(() => { task._stringify({"metric": 123, "value": 123}) });
+          assert.throws(() => { pgclient._stringify({"metric": 123, "value": 123}) });
           done();
         });
 
         it("should fail on non number value", function(done) {
-          assert.throws(() => { task._stringify({"metric": "foo", "value": "bar"}) });
+          assert.throws(() => { pgclient._stringify({"metric": "foo", "value": "bar"}) });
           done();
         });
 
         it("should fail on non string label", function(done) {
-          assert.throws(() => { task._stringify({"metric": "foo", "value": "123", "label": 123}) });
+          assert.throws(() => { pgclient._stringify({"metric": "foo", "value": "123", "label": 123}) });
           done();
         });
 
         it("should fail on non string type", function(done) {
-          assert.throws(() => { task._stringify({"metric": "foo", "value": "123", "type": 123}) });
+          assert.throws(() => { pgclient._stringify({"metric": "foo", "value": "123", "type": 123}) });
           done();
         });
 
         it("should fail on non string help", function(done) {
-          assert.throws(() => { task._stringify({"metric": "foo", "value": "123", "help": 123}) });
+          assert.throws(() => { pgclient._stringify({"metric": "foo", "value": "123", "help": 123}) });
           done();
         });
 
