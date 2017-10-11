@@ -1,8 +1,9 @@
 "use strict";
 
 const assert = require("assert");
-const { SourceRecord } = require("kafka-connect");
 const uuid = require("uuid");
+const request = require("request");
+const { SourceRecord } = require("kafka-connect");
 const { NProducer } = require("sinek");
 
 const { runSourceConnector, runSinkConnector, ConverterFactory } = require("./../../index.js");
@@ -15,7 +16,7 @@ describe("Connector INT", function() {
         let config = null;
         let error = null;
 
-        it("should be able to run sequelize sink config", function() {
+        it("should be able to run prometheus sink config", function() {
             const onError = _error => {
                 error = _error;
             };
@@ -129,6 +130,28 @@ describe("Connector INT", function() {
             }, 4500);
         });
 
+        it("should be able to get the same value from prometheus", function(done) {
+            setTimeout(() => {
+
+                request({
+                  url: "http://localhost:9090/api/v1/query?query=c_metric",
+                  method: 'GET'
+                },
+                function (error, response, body) {
+                  if (body && JSON.parse(body).status ==="success") {
+                    const result = JSON.parse(body);
+                    const metric_name = result.data.result[0].metric["__name__"];
+                    const metric_value = result.data.result[0].value[1] * 1;
+                    assert(metric_name, "c_metric");
+                    assert(metric_value, 2.99792);
+                    done();
+                  }
+                });
+
+            }, 4000);
+
+        });
+
         it("should be able to close configuration", function(done) {
             config.stop();
             producer.close();
@@ -144,7 +167,7 @@ describe("Connector INT", function() {
         let error = null;
         let errorArray = [];
 
-        it("should be able to run sequelize source config", function() {
+        it("should be able to run prometheus sink config", function() {
             const onError = _error => {
                 error = _error;
             };
@@ -177,7 +200,7 @@ describe("Connector INT", function() {
                 .then(() => done());
         });
 
-        it("should be able to run sequelize sink config", function() {
+        it("should be able to run prometheus sink config", function() {
             const onError = _error => {
                 error = _error;
             };
