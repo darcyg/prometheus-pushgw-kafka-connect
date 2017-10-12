@@ -136,14 +136,13 @@ describe("Connector INT", function() {
         it("should be able to get the same value from prometheus", function(done) {
 
             request({
-                url: "http://localhost:9090/api/v1/query?query=c_metric",
+                url: "http://localhost:9090/api/v1/query?query=any_metric",
                 method: 'GET'
             },
             (error, response, body) => {
-               
+
                 assert.ok(body && JSON.parse(body).status ==="success");
                 const result = JSON.parse(body);
-                console.log(result.data); //TODO remove me
                 const metric_name = result.data.result[0].metric["__name__"];
                 const metric_value = result.data.result[0].value[1] * 1;
                 assert(metric_name, "any_metric");
