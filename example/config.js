@@ -24,9 +24,15 @@ const config = {
             requireAcks: 1,
             //ackTimeoutMs: 100,
             //partitionerType: 3
+        },
+        noptions: {
+            "metadata.broker.list": "localhost:9092",
+            "group.id": "kc-prometheus-group",
+            "enable.auto.commit": false,
+            "event_cb": true
         }
     },
-    topic: "feierabend",
+    topic: "kc-prom-test7",
     partitions: 1,
     maxTasks: 1,
     pollInterval: 250,
