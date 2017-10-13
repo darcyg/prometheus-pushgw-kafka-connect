@@ -1,3 +1,3 @@
-# prometheus-kafka-connect
+# prometheus-pushgw-kafka-connect
 
 WIP
