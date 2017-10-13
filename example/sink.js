@@ -13,13 +13,15 @@ console.log({metric: "pi_metric", value: 3.14159});
 console.log("******************");
 console.log("Waiting for message to be consumed...");
 
-const etl = (message, callback) => {
+const etl = (message, next) => {
 
   console.log("consumed message:");
   console.log(message);
 
   let record;
 
+  // Do the transformation here
+  // Below is the expected schema of the object
   try {
 
     record = {
@@ -31,15 +33,19 @@ const etl = (message, callback) => {
     }
 
   } catch(err) {
-    console.log("No message");
+    // Continue with throwing
+    return next(err);
   }
 
-  if (record) {
-    return callback(null, record);
+  if (record && record.metric && record.value) {
+    // Continue with the transformed record
+    console.log("Processed");
+    return next(null, record);
   }
-  else {
-    callback(new Error("unknown message.type"));
-  }
+
+  // Continue without throwing error
+  console.log("Not processed");
+  return next();
 
 }
 
